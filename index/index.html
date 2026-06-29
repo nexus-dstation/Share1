@@ -1,1 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新台アンケート 深掘りフロー（編集ツール）</title>
+<style>
+  :root{--ink:#1f2937;--muted:#6b7280;--accent:#1f5fa8;--tint:#eaf1fb;
+    --green:#1f7a55;--greentint:#e7f4ee;--amber:#9a6a1f;--ambertint:#f7efe0;
+    --red:#b03a3a;--border:#d1d5db;--chip:#cbd5e1;--bg:#fff}
+  *{box-sizing:border-box}
+  body{font-family:"Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,system-ui,sans-serif;color:var(--ink);background:#f3f4f6;margin:0;padding:20px;line-height:1.5}
+  .wrap{max-width:900px;margin:0 auto;background:var(--bg);padding:22px 26px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:12px}
+  .toolbar{position:sticky;top:0;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center;z-index:5;margin-bottom:12px}
+  .toolbar button{font-size:12px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:7px;padding:6px 11px;cursor:pointer;font-weight:700}
+  .toolbar button.warn{border-color:var(--red);color:var(--red)}
+  .toolbar .saved{font-size:11px;color:var(--green);margin-left:auto}
+  .grp{font-weight:700;margin:16px 0 6px;font-size:14px;padding:5px 11px;border-radius:0 6px 6px 0}
+  .grp.green{color:var(--green);border-left:4px solid var(--green);background:var(--greentint)}
+  .grp.amber{color:var(--amber);border-left:4px solid var(--amber);background:var(--ambertint)}
+  .root{border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;margin:8px 0}
+  .root.green{border-color:var(--green)} .root.amber{border-color:var(--amber)}
+  .rhead{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .rootname{font-weight:700;font-size:13.5px;padding:2px 8px;border-radius:6px}
+  .root.green .rootname{background:var(--greentint);color:var(--green)}
+  .root.amber .rootname{background:var(--ambertint);color:var(--amber)}
+  .q{font-size:12px;font-weight:700;margin:9px 0 4px}
+  .q .step{display:inline-block;background:var(--accent);color:#fff;border-radius:50%;width:16px;height:16px;text-align:center;font-size:9px;line-height:16px;margin-right:5px}
+  .opts{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+  .chip{display:inline-flex;align-items:center;border:1px solid var(--chip);border-radius:13px;padding:2px 4px 2px 9px;font-size:11.5px;background:#fff}
+  .chip .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;padding:0 3px;margin-left:2px}
+  .chip .x:hover{color:var(--red)}
+  .addopt{border:1px dashed var(--accent);background:var(--tint);color:var(--accent);border-radius:13px;padding:2px 10px;font-size:11px;cursor:pointer}
+  .delroot{border:1px solid var(--red);background:#fff;color:var(--red);border-radius:6px;font-size:10.5px;padding:2px 8px;cursor:pointer;margin-left:auto}
+  .addroot{border:1px dashed var(--green);background:var(--greentint);color:var(--green);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:700;margin:4px 0 6px}
+  .addroot.amber{border-color:var(--amber);background:var(--ambertint);color:var(--amber)}
+  [contenteditable]{outline:none;cursor:text}
+  [contenteditable]:hover{background:#fff7d6}
+  [contenteditable]:focus{background:#fff;box-shadow:0 0 0 2px var(--accent) inset;border-radius:4px}
+  .hint{font-size:11.5px;color:var(--muted);margin:4px 0 10px}
+  .res{border:2px solid var(--accent);background:var(--tint);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+  .res .rt{font-weight:700;color:var(--accent);font-size:13px;margin-bottom:8px}
+  .res .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .res .kpi{flex:1;min-width:84px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px;text-align:center}
+  .res .kpi .n{font-size:18px;font-weight:700}.res .kpi .l{font-size:10px;color:var(--muted)}
+  .res .cols2{display:flex;gap:14px;flex-wrap:wrap}.res .col2{flex:1;min-width:280px}
+  .res .ch{font-weight:700;font-size:12px;margin-bottom:3px}
+  .res .ch.a{color:var(--green)}.res .ch.b{color:var(--amber)}
+  .res ul{margin:2px 0;padding-left:16px}.res li{font-size:11.5px;margin:2px 0}
+  .res .subh{font-size:11px;font-weight:700;margin:8px 0 3px}
+  .res .bar{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:11px}
+  .res .bar .lab{width:108px;flex:none;text-align:right}
+  .res .bar .track{flex:1;background:#eef1f4;border-radius:5px;height:14px;overflow:hidden}
+  .res .bar .fill{height:100%;border-radius:5px}
+  .res .bar.a .fill{background:var(--green)} .res .bar.b .fill{background:var(--amber)}
+  .res .bar .v{width:26px;flex:none;font-weight:700;font-size:10.5px}
+  .res .bar .v.zero{color:var(--red)}
+  @media print{.toolbar,.addopt,.addroot,.delroot,.chip .x{display:none!important}body{background:#fff;padding:0}.wrap{box-shadow:none;max-width:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>新台アンケート　深掘りフロー（編集ツール）</h1>
+  <div class="sub">「一番の決め手／一番大きい理由」を選んだ後の ①→② 2問。文字はクリックで編集、× で削除、＋ で追加できます。</div>
 
+  <div class="toolbar">
+    <button onclick="exportHTML()">編集HTMLを書き出し（ダウンロード）</button>
+    <button onclick="copyJSON()">JSONをコピー</button>
+    <button onclick="window.print()">印刷 / PDF</button>
+    <button class="warn" onclick="resetAll()">初期状態に戻す</button>
+    <span class="saved" id="saved">自動保存：ブラウザに保存中</span>
+  </div>
+  <div class="hint">※ 編集はこのブラウザに自動保存されます（次に開いても保持）。私（Claude）に反映してもらう時は「JSONをコピー」→チャットに貼り付けてください。</div>
+
+  <div class="res">
+    <div class="rt">高崎本店 テスト結果（参考・2026/6/26）</div>
+    <div class="kpis">
+      <div class="kpi"><div class="n">111</div><div class="l">声かけ</div></div>
+      <div class="kpi"><div class="n">61</div><div class="l">回答(55%)</div></div>
+      <div class="kpi"><div class="n">50</div><div class="l">拒否(45%)</div></div>
+      <div class="kpi"><div class="n" style="color:var(--green)">27</div><div class="l">打った</div></div>
+      <div class="kpi"><div class="n" style="color:var(--amber)">34</div><div class="l">打っていない</div></div>
+    </div>
+    <div class="cols2">
+      <div class="col2">
+        <div class="ch a">【A】打った 27人 ─ 選ぶ基準</div>
+        <div class="subh">一番の決め手</div>
+        <div class="bar a"><div class="lab">スペック</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="v">10</div></div>
+        <div class="bar a"><div class="lab">ゲーム性・演出</div><div class="track"><div class="fill" style="width:90%"></div></div><div class="v">9</div></div>
+        <div class="bar a"><div class="lab">データ</div><div class="track"><div class="fill" style="width:30%"></div></div><div class="v">3</div></div>
+        <div class="bar a"><div class="lab">IP・版権</div><div class="track"><div class="fill" style="width:20%"></div></div><div class="v">2</div></div>
+        <div class="bar a"><div class="lab">話題性/動画/他</div><div class="track"><div class="fill" style="width:30%"></div></div><div class="v">3</div></div>
+        <div class="subh">情報源（複数回答）</div>
+        <div class="bar a"><div class="lab">YouTube・動画</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="v">14</div></div>
+        <div class="bar a"><div class="lab">SNS</div><div class="track"><div class="fill" style="width:86%"></div></div><div class="v">12</div></div>
+        <div class="bar a"><div class="lab">アプリ/メーカー/友人</div><div class="track"><div class="fill" style="width:43%"></div></div><div class="v">6</div></div>
+        <div class="bar a"><div class="lab">店のLINE・メール</div><div class="track"><div class="fill" style="width:14%"></div></div><div class="v">2</div></div>
+        <div class="bar a"><div class="lab">店頭POP・告知</div><div class="track"><div class="fill" style="width:0%"></div></div><div class="v zero">0</div></div>
+      </div>
+      <div class="col2">
+        <div class="ch b">【B】打っていない 34人 ─ 障壁と転換</div>
+        <div class="subh">一番大きい理由</div>
+        <div class="bar b"><div class="lab">今の台で十分</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="v">8</div></div>
+        <div class="bar b"><div class="lab">お金（荒い・高い）</div><div class="track"><div class="fill" style="width:88%"></div></div><div class="v">7</div></div>
+        <div class="bar b"><div class="lab">情報が入らない</div><div class="track"><div class="fill" style="width:63%"></div></div><div class="v">5</div></div>
+        <div class="bar b"><div class="lab">ルールが難しい</div><div class="track"><div class="fill" style="width:50%"></div></div><div class="v">4</div></div>
+        <div class="bar b"><div class="lab">人気で打てない</div><div class="track"><div class="fill" style="width:38%"></div></div><div class="v">3</div></div>
+        <div class="subh">どうなれば打つ（複数回答）</div>
+        <div class="bar b"><div class="lab">甘め・遊びやすい</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="v">14</div></div>
+        <div class="bar b"><div class="lab">出ていると分かれば</div><div class="track"><div class="fill" style="width:64%"></div></div><div class="v">9</div></div>
+        <div class="bar b"><div class="lab">好きなIP・作品</div><div class="track"><div class="fill" style="width:64%"></div></div><div class="v">9</div></div>
+        <div class="bar b"><div class="lab">低貸しで試せる</div><div class="track"><div class="fill" style="width:14%"></div></div><div class="v">2</div></div>
+        <div class="bar b"><div class="lab">体験会/説明/POP</div><div class="track"><div class="fill" style="width:0%"></div></div><div class="v zero">0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="flow"></div>
+  <script id="embedded" type="application/json"></script>
+</div>
+
+<script>
+const DEFAULT = {
+  sections: [
+    { id:"A", title:"【A】一番の決め手 → 2問掘り下げ", color:"green", roots:[
+      {name:"スペック", q1:"どのスペックが魅力？", o1:["大当り確率の高さ","出玉・一発の大きさ","連チャン・継続率","甘さ（当たりやすさ）","一撃性・上限","右打ち中の安心感","時短・引き戻し","ラッシュ突入率","ラッシュ継続率","コスパ（投資対効果）"], q2:"それをどこで判断した？", o2:["メーカー公表スペック","実戦動画の挙動","店のデータ","過去シリーズの経験","口コミ・評判","スペック解説サイト","友人の話","体感・直感"]},
+      {name:"ゲーム性・演出", q1:"どこに惹かれた？", o1:["演出のアツさ・期待度","リーチ・予告の面白さ","音・BGM","映像・グラフィック","キャラ・ボイス","打感・操作","打ちやすさ・分かりやすさ","世界観・ストーリー","演出のテンポ","信頼度の分かりやすさ"], q2:"いつ良さに気づいた？", o2:["動画・SNSで事前に","店頭で実機を見て","試し打ちして","友人に聞いて","過去作で知っていた"]},
+      {name:"IP・版権", q1:"どのジャンル？", o1:["アニメ","マンガ","ゲーム","特撮・ヒーロー","映画・ドラマ","アイドル・芸能","スポーツ","音楽・アーティスト","パチンコオリジナル","その他作品（自由）"], q2:"IPのどこが重要？", o2:["作品が好き","キャラが好き","声優・出演者","楽曲・主題歌","映像・演出","原作再現度","限定演出・プレミア","懐かしさ"]},
+      {name:"データ", q1:"どのデータを見る？", o1:["末尾・台番","差玉・出玉グラフ","回転率・ボーダー","大当り回数","前日・前々日","周期・ゾーン","設定示唆","店のSNS発信","イベント・特定日"], q2:"どこで見る？", o2:["店内のデータ表示","データ表サイト・アプリ","店のSNS","自分で見て回る","友人と共有","来店前にスマホで"]},
+      {name:"メーカー", q1:"どのメーカー？", o1:["SANKYO","三洋","ニューギン","京楽","大都技研","ユニバーサル","北電子","サミー","平和","高尾","その他"], q2:"メーカーの何で選ぶ？", o2:["過去機種が好き","出る印象","演出の作りが好き","安心・信頼","新台への力の入れ方","スペック傾向"]},
+      {name:"話題性", q1:"どこで話題に反応？", o1:["導入前の盛り上がり","SNSのバズ","有名実戦者が打っている","ランキング上位","周りが打っている","メディアの注目","久々の大型タイトル"], q2:"話題の何で動く？", o2:["出ているらしい","面白いらしい","みんな打っている","限定・初物を打ちたい","乗り遅れたくない"]},
+      {name:"動画・口コミ", q1:"誰の情報？", o1:["有名実戦者・配信者","メーカー公式PV","一般ユーザー投稿","友人・知人","まとめ・記事","インフルエンサー","店のSNS"], q2:"何を見て決めた？", o2:["出玉・勝ち報告","演出・試打の面白さ","スペック解説","立ち回り・狙い目","評価・点数"]},
+      {name:"導入台数", q1:"台数の何を見た？", o1:["店が力を入れている証拠","座れる安心感","出る期待（推し台）","旧台撤去の規模","シマの位置・目立つ場所"], q2:"何台規模で動く？", o2:["大量導入なら","シマ単位なら","数台でも気になれば","内容次第","関係ない"]}
+    ]},
+    { id:"B", title:"【B】一番大きい理由 → 2問掘り下げ", color:"amber", roots:[
+      {name:"今の台で十分", q1:"切替の可能性は？", o1:["良い実績が出れば","好きなIPなら","今の台が無くなれば","甘い新台なら","友人が打っていたら","イベントがあれば","まったくない"], q2:"今の台の何が良い？", o2:["出る・甘い","慣れている・分かる","好き・愛着","空いている・座れる","低貸しで安い","勝った思い出","演出が好み"]},
+      {name:"お金（荒い・高い）", q1:"何がネック？", o1:["1回の投資額が大きい","当たるまで遠い","4円が高い（低貸しなら可）","上限・天井まで重い","負けが怖い","時間がかかる","出ないと一気に減る"], q2:"いくらなら試す？", o2:["〜5千円","〜1万円","〜2万円","〜3万円","低貸しでだけ","金額では決めない"]},
+      {name:"情報が入らない", q1:"どこで知れたら打つ？", o1:["店のLINE","SNS","動画","店頭POP・告知","スタッフ案内","友人","アプリ","メール"], q2:"どんな情報が欲しい？", o2:["入替予定","スペック・遊び方","出ているデータ","おすすめ・狙い目","イベント","試打動画","甘い台の案内"]},
+      {name:"ルールが難しい", q1:"何が分かれば打てる？", o1:["打ち方・止め打ち","やめどき・天井","玉・メダルの流れ","演出の意味","スペックの仕組み","通常時の打ち方","ラッシュ中の打ち方"], q2:"どう知りたい？", o2:["店頭の説明POP","スタッフの声かけ","動画・QR","簡単ガイド配布","自分で調べる","友人に教わる"]},
+      {name:"人気で打てない", q1:"どうなら打てる？", o1:["空き時間帯の案内","増台","データで空き可視化","整理券・予約","平日なら","早朝・深夜なら"], q2:"来店が多いのは？", o2:["平日昼","平日夜","土日昼","土日夜","仕事帰り","不定"]},
+      {name:"様子見", q1:"いつ動く？", o1:["1〜2日","1週間以内","2週間以内","実績が出てから","話題が続けば","値段が下がれば","動かない"], q2:"何を見て動く？", o2:["出玉データ","口コミ・評判","値段（低貸し化）","空き具合","友人の評価","SNSの盛り上がり"]},
+      {name:"データが無くて不安", q1:"何で安心できる？", o1:["差玉・出玉グラフ","末尾・台番","設定・釘の示唆","店のSNS発信","ランキング","平均データ","導入後の経過"], q2:"どこで見たい？", o2:["店内データ表示","アプリ・サイト","店のSNS","店頭POP","スタッフ案内"]},
+      {name:"当たらない・回収が早い不安", q1:"どうなら試す？", o1:["甘め・遊びやすい台","低貸しで","出ていると分かれば","好きなIPなら","イベント時","試さない"], q2:"不安の元は？", o2:["過去に負けた経験","周りの負け話","高スペックの印象","店への不信","回らない印象","なんとなく"]}
+    ]}
+  ]
+};
+
+const KEY = "shindaiFlowEdit";
+let state = load();
+let pendingFocus = null;
+
+function load(){
+  try{ const s = localStorage.getItem(KEY); if(s) return JSON.parse(s); }catch(e){}
+  try{ const em = document.getElementById('embedded'); if(em && em.textContent.trim()) return JSON.parse(em.textContent); }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT));
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); flash(); }
+function flash(){ const el=document.getElementById('saved'); el.textContent='保存しました ✓'; setTimeout(()=>el.textContent='自動保存：ブラウザに保存中',1200); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function render(){
+  const root = document.getElementById('flow');
+  let h='';
+  state.sections.forEach((sec,si)=>{
+    h+=`<div class="grp ${sec.color}"><span contenteditable class="etext" data-edit="title" data-s="${si}">${esc(sec.title)}</span></div>`;
+    sec.roots.forEach((r,ri)=>{
+      h+=`<div class="root ${sec.color}">
+        <div class="rhead">
+          <span class="rootname etext" contenteditable data-edit="name" data-s="${si}" data-r="${ri}">${esc(r.name)}</span>
+          <button class="delroot" data-act="del-root" data-s="${si}" data-r="${ri}">ルート削除</button>
+        </div>
+        ${qBlock(si,ri,1,r.q1,r.o1)}
+        ${qBlock(si,ri,2,r.q2,r.o2)}
+      </div>`;
+    });
+    h+=`<button class="addroot ${sec.color}" data-act="add-root" data-s="${si}">＋ルートを追加</button>`;
+  });
+  root.innerHTML=h;
+  if(pendingFocus){
+    const sel=`[data-edit="opt"][data-s="${pendingFocus.s}"][data-r="${pendingFocus.r}"][data-f="${pendingFocus.f}"][data-i="${pendingFocus.i}"]`;
+    const el=root.querySelector(sel); if(el){ el.focus(); document.getSelection().selectAllChildren(el); }
+    pendingFocus=null;
+  }
+}
+function qBlock(si,ri,n,q,opts){
+  const field='o'+n;
+  let c=opts.map((o,oi)=>`<span class="chip"><span class="etext" contenteditable data-edit="opt" data-s="${si}" data-r="${ri}" data-f="${field}" data-i="${oi}">${esc(o)}</span><button class="x" data-act="del-opt" data-s="${si}" data-r="${ri}" data-f="${field}" data-i="${oi}">×</button></span>`).join('');
+  return `<div class="q"><span class="step">${n}</span><span class="etext" contenteditable data-edit="q${n}" data-s="${si}" data-r="${ri}">${esc(q)}</span></div>
+    <div class="opts">${c}<button class="addopt" data-act="add-opt" data-s="${si}" data-r="${ri}" data-f="${field}">＋選択肢</button></div>`;
+}
+
+document.getElementById('flow').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const s=+b.dataset.s, r=+b.dataset.r, f=b.dataset.f, i=+b.dataset.i;
+  const act=b.dataset.act;
+  if(act==='del-opt'){ state.sections[s].roots[r][f].splice(i,1); }
+  else if(act==='add-opt'){ const arr=state.sections[s].roots[r][f]; arr.push('新しい選択肢'); pendingFocus={s,r,f,i:arr.length-1}; }
+  else if(act==='del-root'){ if(confirm('このルートを削除しますか？')) state.sections[s].roots.splice(r,1); else return; }
+  else if(act==='add-root'){ state.sections[s].roots.push({name:'新しいルート',q1:'質問①',o1:['選択肢1'],q2:'質問②',o2:['選択肢1']}); }
+  save(); render();
+});
+
+document.getElementById('flow').addEventListener('focusout',e=>{
+  const el=e.target.closest('.etext'); if(!el) return;
+  const s=+el.dataset.s, r=el.dataset.r!==undefined?+el.dataset.r:null, edit=el.dataset.edit;
+  const t=el.textContent.trim();
+  if(edit==='title'){ state.sections[s].title=t; }
+  else if(edit==='name'){ state.sections[s].roots[r].name=t; }
+  else if(edit==='q1'){ state.sections[s].roots[r].q1=t; }
+  else if(edit==='q2'){ state.sections[s].roots[r].q2=t; }
+  else if(edit==='opt'){ state.sections[s].roots[r][el.dataset.f][+el.dataset.i]=t; }
+  save();
+});
+
+function exportHTML(){
+  const em=document.getElementById('embedded');
+  em.textContent=JSON.stringify(state);                 // 現在の編集内容を埋め込む
+  const html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  em.textContent='';                                    // 編集中ファイルは元に戻す
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='新台アンケート_深掘りフロー（編集版）.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
+function copyJSON(){
+  const txt=JSON.stringify(state,null,2);
+  navigator.clipboard.writeText(txt).then(()=>alert('JSONをコピーしました。チャットに貼り付けてください。')).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('JSONをコピーしました。');
+  });
+}
+function resetAll(){ if(confirm('編集を破棄して初期状態に戻しますか？')){ state=JSON.parse(JSON.stringify(DEFAULT)); save(); render(); } }
+
+render();
+</script>
+</body>
+</html>
